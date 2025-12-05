@@ -1,0 +1,5 @@
+[tools]
+poetry = { version = "2.2", pyproject = "{{ config_root }}/py/pyproject.toml" }
+python = { version = "3.11", virtualenv = "{{ config_root }}/py/.venv" } # must be after poetry so the poetry bin is first in PATH
+
+[env]
