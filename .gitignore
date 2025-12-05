@@ -43,3 +43,6 @@ go.work.sum
 .ruff_cache/
 *.egg-info
 .venv
+
+./poetry.lock
+./pyproject.toml
