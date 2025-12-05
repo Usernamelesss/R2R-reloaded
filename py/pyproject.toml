@@ -38,7 +38,7 @@ toml = ">=0.10.2,<0.11.0"
 types-requests = ">=2.31.0,<3.0.0"
 types-aiofiles = ">=24.1.0.20240626,<25.0.0"
 typing-extensions = ">=4.12.2,<5.0.0"
-pydantic = ">=2.10.6"
+pydantic = { version = ">=2.10.6", extras = ["email"] }
 python-json-logger = ">=3.2.1"
 filetype = ">=1.2.0"
 
