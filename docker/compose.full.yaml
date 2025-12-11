@@ -17,9 +17,11 @@ volumes:
     name: postgres_data
 
 services:
-  postgres:
+
+  r2r-postgres:
     image: pgvector/pgvector:pg16
-    profiles: [postgres]
+    container_name: postgres
+#    profiles: [postgres]
     env_file:
       - ./env/postgres.env
     volumes:
@@ -31,7 +33,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: on-failure
+    restart: unless-stopped
     command: >
       postgres
       -c max_connections=1024
@@ -51,11 +53,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: on-failure
+    restart: unless-stopped
     command: server /data --console-address ":9001"
 
   hatchet-postgres:
-    image: postgres:latest
+    image: postgres:16
     env_file:
       - ./env/hatchet.env
     volumes:
@@ -117,10 +119,18 @@ services:
   hatchet-engine:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15
     command: /hatchet/hatchet-engine --config /hatchet/config
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       hatchet-setup-config:
         condition: service_completed_successfully
+      hatchet-create-db:
+        condition: service_completed_successfully
+      hatchet-migration:
+        condition: service_completed_successfully
+      hatchet-rabbitmq:
+        condition: service_healthy
+      hatchet-postgres:
+        condition: service_healthy
     ports:
       - "7077:7077"
     env_file:
@@ -137,7 +147,7 @@ services:
   hatchet-dashboard:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15
     command: sh ./entrypoint.sh --config /hatchet/config
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       hatchet-setup-config:
         condition: service_completed_successfully
@@ -191,7 +201,7 @@ services:
       interval: 6s
       timeout: 5s
       retries: 5
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - ./user_configs:/app/user_configs
       - ./user_tools:/app/user_tools
@@ -205,6 +215,10 @@ services:
       unstructured:
         condition: service_healthy
       graph_clustering:
+        condition: service_healthy
+      r2r-postgres:
+        condition: service_healthy
+      hatchet-engine:
         condition: service_healthy
 
   r2r-dashboard:
