@@ -40,14 +40,15 @@ services:
 
   minio:
     image: minio/minio
-    profiles: [minio]
+    hostname: minio
+#    profiles: [minio]
     env_file:
       - ./env/minio.env
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000" # API port
+      - "9001:9001" # Mgmt port
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -173,6 +174,8 @@ services:
 
   unstructured:
     image: ragtoriches/unst-prod
+    ports:
+      - "7275:7275"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7275/health"]
       interval: 10s
@@ -219,6 +222,8 @@ services:
       r2r-postgres:
         condition: service_healthy
       hatchet-engine:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   r2r-dashboard:
