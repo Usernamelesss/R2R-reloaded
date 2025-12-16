@@ -1,18 +1,30 @@
 [tools]
-#poetry = { version = "2.2", pyproject = "{{ config_root }}/py/pyproject.toml" }
 uv = "0.9.17"
-python = { version = "3.11", virtualenv = "{{ config_root }}/py/.venv" } # must be after poetry so the poetry bin is first in PATH
+python = "3.11"
+
+[settings]
+python.uv_venv_auto = true  # Tell mise to use venv created by uv
+
+[tasks.setup]
+description = "Initial project setup: create uv virtualenv using Python version managed by mise"
+run = [
+    "uv venv --python $(mise where python)/bin/python --clear $VENV_PATH",
+    "mise run install"
+]
 
 [tasks.install]
 description = "Install (all) dependencies"
 alias = "i"
-run = "uv pip install -r {{ config_root }}/py/pyproject.toml --all-extras"
+run = [
+    "uv sync --all-extras --project ./py --python $(mise where python)/bin/python"
+]
 
 [env]
 # Use the project name derived from the current directory
 PROJECT_NAME = "{{ config_root | basename }}"
 PROJECT_ROOT = "{{ config_root }}"
+VENV_PATH = "{{ config_root }}/py/.venv"
+UV_PROJECT = "{{ config_root }}/py/pyproject.toml"
 
 # Automatic virtualenv activation
 _.python.venv = { path = "{{ config_root }}/py/.venv", create = true }
-
