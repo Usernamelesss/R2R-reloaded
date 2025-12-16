@@ -150,12 +150,13 @@ def hatchet_ingestion_factory(
                     status=IngestionStatus.SUCCESS,
                 )
 
-                collection_ids = document_info.collection_ids
+                collection_ids: list[UUID] = document_info.collection_ids
                 if not collection_ids:
                     # TODO: Move logic onto the `management service`
                     collection_id = generate_default_user_collection_id(
                         document_info.owner_id
                     )
+                    logger.info(f"No collection ids found, creating a new collection ({collection_id}) and assigning the document to it")
                     await service.providers.database.collections_handler.assign_document_to_collection_relational(
                         document_id=document_info.id,
                         collection_id=collection_id,
@@ -175,8 +176,7 @@ def hatchet_ingestion_factory(
                         status=GraphConstructionStatus.OUTDATED,
                     )
                 else:
-                    for collection_id_str in collection_ids:
-                        collection_id = UUID(collection_id_str)
+                    for collection_id in collection_ids:
                         try:
                             name = document_info.title or "N/A"
                             description = ""
@@ -200,14 +200,21 @@ def hatchet_ingestion_factory(
                                 f"Warning, could not create collection with error: {str(e)}"
                             )
 
-                        await service.providers.database.collections_handler.assign_document_to_collection_relational(
-                            document_id=document_info.id,
-                            collection_id=collection_id,
-                        )
-                        await service.providers.database.chunks_handler.assign_document_chunks_to_collection(
-                            document_id=document_info.id,
-                            collection_id=collection_id,
-                        )
+                        # FIXME - This operation is attempted twice. Is it due to changes in this PR https://github.com/SciPhi-AI/R2R/pull/2260/files#diff-c9e425898f8a2d8983e833895b0c3d2228f0435dd9cba8d6e3cfa050a680d133 ?
+                        #  tmp fix is to go ahead in case of 409 error but it requires deeper investigations on R2R internals
+                        try:
+                            await service.providers.database.collections_handler.assign_document_to_collection_relational(
+                                document_id=document_info.id,
+                                collection_id=collection_id,
+                            )
+                            await service.providers.database.chunks_handler.assign_document_chunks_to_collection(
+                                document_id=document_info.id,
+                                collection_id=collection_id,
+                            )
+                        except R2RException as e:
+                            if e.status_code == 409:
+                                logger.warning(f"Document {document_info.id} already assigned to collection {collection_id}")
+
                         await service.providers.database.documents_handler.set_workflow_status(
                             id=collection_id,
                             status_type="graph_sync_status",
@@ -452,8 +459,7 @@ def hatchet_ingestion_factory(
                         status=GraphConstructionStatus.OUTDATED,
                     )
                 else:
-                    for collection_id_str in collection_ids:
-                        collection_id = UUID(collection_id_str)
+                    for collection_id in collection_ids:
                         try:
                             name = document_info.title or "N/A"
                             description = ""

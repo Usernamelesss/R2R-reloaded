@@ -1168,7 +1168,20 @@ class GraphService(Service):
         wrapped = f"<root>{cleaned_xml}</root>"
         try:
             root = ET.fromstring(wrapped)
-        except ET.ParseError:
+        except ET.ParseError as e:
+            msg = f"""
+            Error parsing XML response from LLM.
+            Original response:
+            ==============
+            {response_str}
+            ==============
+            Sanitized response:
+            ==============
+            {wrapped}
+            ==============
+            """
+            logger.exception(msg)
+
             raise R2RException(
                 f"Failed to parse XML:\nData: {wrapped[:1000]}...", 400
             ) from None
